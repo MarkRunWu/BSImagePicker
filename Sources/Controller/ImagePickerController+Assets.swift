@@ -27,7 +27,7 @@ extension ImagePickerController: AssetsViewControllerDelegate {
     func assetsViewController(_ assetsViewController: AssetsViewController, didSelectAsset asset: PHAsset) {
         if settings.selection.unselectOnReachingMax && assetStore.count > settings.selection.max {
             if let first = assetStore.removeFirst() {
-                assetsViewController.unselect(asset:first)
+                assetsViewController.unselect(asset: first)
                 imagePickerDelegate?.imagePicker(self, didDeselectAsset: first)
             }
         }

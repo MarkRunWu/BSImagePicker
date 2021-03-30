@@ -36,6 +36,7 @@ class AssetsViewController: UIViewController {
     }
 
     private let store: AssetStore
+    private var currentAlbum: PHAssetCollection?
     private let collectionView: UICollectionView = UICollectionView(frame: .zero, collectionViewLayout: UICollectionViewFlowLayout())
     private var fetchResult: PHFetchResult<PHAsset> = PHFetchResult<PHAsset>() {
         didSet {
@@ -92,6 +93,7 @@ class AssetsViewController: UIViewController {
     }
 
     func showAssets(in album: PHAssetCollection) {
+        self.currentAlbum = album
         fetchResult = PHAsset.fetchAssets(in: album, options: settings.fetch.assets.options)
         collectionView.reloadData()
         let selections = self.store.assets
@@ -204,7 +206,9 @@ extension AssetsViewController: UICollectionViewDelegate {
 
 extension AssetsViewController: PHPhotoLibraryChangeObserver {
     func photoLibraryDidChange(_ changeInstance: PHChange) {
-        guard let changes = changeInstance.changeDetails(for: fetchResult) else { return }
+        guard let changes = changeInstance.changeDetails(for: fetchResult) else {
+            return
+        }
         // Since we are gonna update UI, make sure we are on main
         DispatchQueue.main.async {
             if changes.hasIncrementalChanges {

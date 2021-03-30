@@ -56,7 +56,7 @@ import Photos
     let dropdownTransitionDelegate = DropdownTransitionDelegate()
     let zoomTransitionDelegate = ZoomTransitionDelegate()
 
-    lazy var albums: [PHAssetCollection] = {
+    private func loadAlbums() -> [PHAssetCollection] {
         // We don't want collections without assets.
         // I would like to do that with PHFetchOptions: fetchOptions.predicate = NSPredicate(format: "estimatedAssetCount > 0")
         // But that doesn't work...
@@ -74,6 +74,11 @@ import Photos
             let assetsFetchResult = PHAsset.fetchAssets(in: $0, options: fetchOptions)
             return assetsFetchResult.count > 0
         }
+    }
+    var currentAlbum: PHAssetCollection?
+
+    lazy var albums: [PHAssetCollection] = {
+        self.loadAlbums()
     }()
 
     public init(selectedAssets: [PHAsset] = []) {
@@ -86,17 +91,27 @@ import Photos
         fatalError("init(coder:) has not been implemented")
     }
 
+    open override func viewWillAppear(_ animated: Bool) {
+        super.viewWillAppear(animated)
+        PHPhotoLibrary.shared().register(self)
+    }
+
+    open override func viewWillDisappear(_ animated: Bool) {
+        super.viewWillDisappear(animated)
+        PHPhotoLibrary.shared().unregisterChangeObserver(self)
+    }
+
     public override func viewDidLoad() {
         super.viewDidLoad()
-        
+
         // Sync settings
         albumsViewController.settings = settings
         assetsViewController.settings = settings
-        
+
         // Setup view controllers
         albumsViewController.delegate = self
         assetsViewController.delegate = self
-        
+
         viewControllers = [assetsViewController]
         view.backgroundColor = settings.theme.backgroundColor
 
@@ -159,5 +174,21 @@ import Photos
 
     func updateAlbumButton() {
         albumButton.isHidden = albums.count < 2
+    }
+}
+
+extension ImagePickerController: PHPhotoLibraryChangeObserver {
+    public func photoLibraryDidChange(_ changeInstance: PHChange) {
+        if let currentAlbum = currentAlbum,
+           changeInstance.changeDetails(for: currentAlbum) != nil {
+            return
+        }
+        DispatchQueue.main.async {
+            self.albums = self.loadAlbums()
+            self.updateAlbumButton()
+            if let firstAlbum = self.albums.first {
+                self.select(album: firstAlbum)
+            }
+        }
     }
 }
